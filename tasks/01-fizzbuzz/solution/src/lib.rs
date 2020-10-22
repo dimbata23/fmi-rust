@@ -8,18 +8,18 @@ pub fn custom_buzz( n: usize, k1: u8, k2: u8 ) -> Vec<String> {
         k1,
         k2,
         labels: [
-            String::from("Fizz"),
-            String::from("Buzz"),
-            String::from("Fizzbuzz")
+            String::from( "Fizz" ),
+            String::from( "Buzz" ),
+            String::from( "Fizzbuzz" )
         ],
-    }.take(n)
+    }.take( n )
 }
 
 
 pub struct FizzBuzzer {
     pub k1:     u8,
     pub k2:     u8,
-    pub labels: [String; 3],
+    pub labels: [ String; 3 ],
 }
 
 
@@ -32,7 +32,7 @@ impl FizzBuzzer {
 
         let mut res :   Vec<String> = Vec::new();
 
-        for i in 1..=n {
+        for i in 1 ..= n {
 
             let div_by_k1  = i % self.k1 as usize == 0;
             let div_by_k2  = i % self.k2 as usize == 0;
