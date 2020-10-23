@@ -26,8 +26,8 @@ pub struct FizzBuzzer {
 impl FizzBuzzer {
 
     pub fn take( &self, n: usize ) -> Vec<String> {
-        if n == 0 || n == 1 {
-            panic!( "FizzBuzzer::take( n ): Expected [2, 255], found {0}", n );
+        if self.k1 == 0 || self.k1 == 1 || self.k2 == 0 || self.k2 == 1 {
+            panic!( "FizzBuzzer: k1/k2 expected [2, 255], found {}/{}", self.k1, self.k2 );
         }
 
         let mut res :   Vec<String> = Vec::new();
@@ -59,7 +59,7 @@ impl FizzBuzzer {
     pub fn change_label( &mut self, index: usize, value: &String ) {
         match index {
             0 ..= 2 => self.labels[ index ] = value.clone(),
-            _       => panic!( "FizzBuzzer::change_label( index, value ): Index out of bounds! Expected [0, 2], found {0}", index ),
+            _       => panic!( "FizzBuzzer::change_label( index, value ): Index out of bounds! Expected [0, 2], found {}", index ),
         }
     }
 
