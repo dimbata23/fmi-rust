@@ -39,32 +39,26 @@ impl FromStr for Bigint {
         res_big_int.digits.pop();
 
         for (i, c) in s.chars().enumerate() {
-            if c >= '0' && c <= '9' {
-                if c == '0' && res_big_int.digits.is_empty() {
-                    continue;
-                }
-
-                res_big_int.digits.push( c as i8 - '0' as i8 );
-            } else if c == '+' && i == 0 {
-                res_big_int.sign = 1;
-            } else if c == '-' && i == 0 {
-                res_big_int.sign = -1;
-            } else {
-                return Err( ParseError );
+            match c {
+                '0' ..= '9' =>
+                {
+                    if c == '0' && res_big_int.digits.is_empty()
+                        { continue }
+                    else
+                        { res_big_int.digits.push( c as i8 - '0' as i8 ) }
+                },
+                '+'     if i == 0   =>  res_big_int.sign = 1,
+                '-'     if i == 0   =>  res_big_int.sign = -1,
+                _                   =>  return Err( ParseError )
             }
         }
 
         if res_big_int.digits.is_empty() {
-            res_big_int.digits.push( 0 );
+            Ok( Bigint::new() )
+        } else {
+            res_big_int.digits.reverse();
+            Ok( res_big_int )
         }
-
-        if res_big_int.digits.len() == 1 && res_big_int.digits[ 0 ] == 0 {
-            res_big_int.sign = 1;
-        }
-
-        res_big_int.digits.reverse();
-
-        Ok( res_big_int )
     }
 }
 
@@ -96,8 +90,9 @@ impl Ord for Bigint {
             }
         } else {
             let mut res = Ordering::Equal;
+            
             for (i, n) in self.digits.iter().rev().enumerate() {
-                let cmp = n.cmp(&other.digits[ other.digits.len() - i - 1 ]);
+                let cmp = n.cmp( &other.digits[ other.digits.len() - i - 1 ] );
                 if cmp != Ordering::Equal {
                     res = cmp;
                     if self.sign == -1 {
@@ -192,10 +187,9 @@ impl Sub for Bigint {
                 res.digits.pop();
             }
 
-            if res.digits.is_empty() {
-                Bigint::new()
-            } else {
-                res
+            match res.digits.is_empty() {
+                true    => Bigint::new(),
+                false   => res
             }
         }
     }
