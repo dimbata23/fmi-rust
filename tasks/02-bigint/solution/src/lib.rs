@@ -34,22 +34,22 @@ pub struct ParseError;
 impl FromStr for Bigint {
     type Err = ParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str( s: &str ) -> Result< Self, Self::Err > {
         let mut res_big_int = Bigint::new();
         res_big_int.digits.pop();
 
-        for (i, c) in s.chars().enumerate() {
-            match c {
+        for ( index, ch ) in s.chars().enumerate() {
+            match ch {
                 '0' ..= '9' =>
                 {
-                    if c == '0' && res_big_int.digits.is_empty()
+                    if ch == '0' && res_big_int.digits.is_empty()
                         { continue }
                     else
-                        { res_big_int.digits.push( c as i8 - '0' as i8 ) }
+                        { res_big_int.digits.push( ch as i8 - '0' as i8 ) }
                 },
-                '+'     if i == 0   =>  res_big_int.sign = 1,
-                '-'     if i == 0   =>  res_big_int.sign = -1,
-                _                   =>  return Err( ParseError )
+                '+'     if index == 0   =>  res_big_int.sign = 1,
+                '-'     if index == 0   =>  res_big_int.sign = -1,
+                _                       =>  return Err( ParseError )
             }
         }
 
@@ -64,35 +64,27 @@ impl FromStr for Bigint {
 
 
 impl PartialOrd for Bigint {
-    fn partial_cmp(&self, other: &Bigint) -> Option<Ordering> {
-        Some(self.cmp(other))
+    fn partial_cmp( &self, other: &Bigint ) -> Option< Ordering > {
+        Some( self.cmp( other ) )
     }
 }
 
 
 impl Ord for Bigint {
-    fn cmp(&self, other: &Bigint) -> Ordering {
-        if self.sign < other.sign {
-            Ordering::Less
-        } else if self.sign > other.sign {
-            Ordering::Greater
-        } else if self.digits.len() < other.digits.len() {
-            if self.sign < 0 {
-                Ordering::Greater
-            } else {
-                Ordering::Less
-            }
+    fn cmp( &self, other: &Bigint ) -> Ordering {
+        if      self.sign < other.sign  { Ordering::Less }
+        else if self.sign > other.sign  { Ordering::Greater }
+        else if self.digits.len() < other.digits.len() {
+            if self.sign < 0    { Ordering::Greater }
+            else                { Ordering::Less }
         } else if self.digits.len() > other.digits.len() {
-            if self.sign < 0 {
-                Ordering::Less
-            } else {
-                Ordering::Greater
-            }
+            if self.sign < 0    { Ordering::Less }
+            else                { Ordering::Greater }
         } else {
             let mut res = Ordering::Equal;
             
-            for (i, n) in self.digits.iter().rev().enumerate() {
-                let cmp = n.cmp( &other.digits[ other.digits.len() - i - 1 ] );
+            for ( index, digit ) in self.digits.iter().rev().enumerate() {
+                let cmp = digit.cmp( &other.digits[ other.digits.len() - index - 1 ] );
                 if cmp != Ordering::Equal {
                     res = cmp;
                     if self.sign == -1 {
@@ -111,12 +103,10 @@ impl Ord for Bigint {
 impl Add for Bigint {
     type Output = Bigint;
 
-    fn add(self, other: Self) -> Self {
-        if self.sign < other.sign {
-            other - -self
-        } else if self.sign > other.sign {
-            self - -other
-        } else {
+    fn add( self, other: Self ) -> Self {
+        if      self.sign < other.sign { other - -self }
+        else if self.sign > other.sign { self - -other }
+        else {
             let mut smaller = &self;
             let mut res;
             if other.digits.len() < self.digits.len() {
@@ -126,7 +116,7 @@ impl Add for Bigint {
                 res = other.clone();
             }
 
-            let carry_over = |bigint : &mut Bigint, index : usize| { 
+            let carry_over = | bigint : &mut Bigint, index : usize | { 
                 if bigint.digits[ index ] >= 10 {
                     bigint.digits[ index ] -= 10;
                     if index + 1 < bigint.digits.len() {
@@ -137,11 +127,11 @@ impl Add for Bigint {
                 }
             };
 
-            for i in 0..res.digits.len() {
-                if i < smaller.digits.len() {
-                    res.digits[ i ] += smaller.digits[ i ];
+            for index in 0..res.digits.len() {
+                if index < smaller.digits.len() {
+                    res.digits[ index ] += smaller.digits[ index ];
                 }
-                carry_over( &mut res, i );
+                carry_over( &mut res, index );
             }
 
             res
@@ -153,12 +143,10 @@ impl Add for Bigint {
 impl Sub for Bigint {
     type Output = Bigint;
 
-    fn sub(self, other: Self) -> Self {
-        if self.sign > other.sign {
-            self + -other
-        } else if self.sign < other.sign {
-            -(-self + other)
-        } else {
+    fn sub( self, other: Self ) -> Self {
+        if      self.sign > other.sign { self + -other }
+        else if self.sign < other.sign { -(-self + other) }
+        else {
             let mut res;
             let smaller;
             if self > other && self.sign > 0 || self < other && self.sign < 0 {
@@ -171,15 +159,17 @@ impl Sub for Bigint {
                 smaller = self;
             }
 
-            for (i, n) in smaller.digits.iter().enumerate() {
-                res.digits[ i ] -= n;
-                let mut ind = i;
-                let mut curr_digit = &mut res.digits[ ind ];
+            for ( index, digit ) in smaller.digits.iter().enumerate() {
+                res.digits[ index ] -=  digit;
+
+                let mut curr_ind     =  index;
+                let mut curr_digit   =  &mut res.digits[ curr_ind ];
+
                 while *curr_digit < 0 {
-                    *curr_digit += 10;
-                    ind += 1;
-                    curr_digit = &mut res.digits[ ind ];
-                    *curr_digit -= 1;
+                    *curr_digit     +=  10;
+                     curr_ind       +=  1;
+                     curr_digit      =  &mut res.digits[ curr_ind ];
+                    *curr_digit     -=  1;
                 }
             }
 
@@ -199,7 +189,7 @@ impl Sub for Bigint {
 impl Neg for Bigint {
     type Output = Bigint;
 
-    fn neg(self) -> Self {
+    fn neg( self ) -> Self {
         Self { sign: self.sign * -1, digits: self.digits }
     }
 }
