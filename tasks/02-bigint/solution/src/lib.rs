@@ -40,8 +40,7 @@ impl FromStr for Bigint {
 
         for ( index, ch ) in s.chars().enumerate() {
             match ch {
-                '0' ..= '9' =>
-                {
+                '0' ..= '9' => {
                     if ch == '0' && res_big_int.digits.is_empty()
                         { continue }
                     else
@@ -111,9 +110,9 @@ impl Add for Bigint {
             let mut res;
             if other.digits.len() < self.digits.len() {
                 smaller = &other;
-                res = self.clone();
+                res     = self.clone();
             } else {
-                res = other.clone();
+                res     = other.clone();
             }
 
             let carry_over = | bigint : &mut Bigint, index : usize | { 
@@ -150,13 +149,13 @@ impl Sub for Bigint {
             let mut res;
             let smaller;
             if self > other && self.sign > 0 || self < other && self.sign < 0 {
-                res = self.clone();
-                res.sign = self.sign;
-                smaller = other;
+                res         =   self.clone();
+                res.sign    =   self.sign;
+                smaller     =   other;
             } else {
-                res = other.clone();
-                res.sign = -1 * self.sign;
-                smaller = self;
+                res         =   other.clone();
+                res.sign    =   self.sign * -1;
+                smaller     =   self;
             }
 
             for ( index, digit ) in smaller.digits.iter().enumerate() {
@@ -178,8 +177,8 @@ impl Sub for Bigint {
             }
 
             match res.digits.is_empty() {
-                true    => Bigint::new(),
-                false   => res
+                true    =>  Bigint::new(),
+                false   =>  res
             }
         }
     }
