@@ -1,14 +1,25 @@
-use logos::Logos;
+// use logos::Logos;
 mod parser;
+mod interpreter;
+use parser::Parser;
+use std::io;
 
 fn main() {
-    let mut lex = parser::Token::lexer(r"(define x 5)");
 
-    let mut data = lex.next();
-    while !data.is_none() {
-        println!( "{:?}", data.unwrap() );
-        data = lex.next();
+    let mut parser  = Parser::new();
+    let mut input   = String::new();
+    loop {
+        input.clear();
+        if let Err( e ) = io::stdin().read_line( &mut input ) {
+            println!( "{}", e );
+            break;
+        }
+
+        parser.load( input.as_str() );
+
+        for data in &mut parser {
+            println!( "{:?}", data );
+        }
     }
 
-    println!("Hello, world!");
 }
