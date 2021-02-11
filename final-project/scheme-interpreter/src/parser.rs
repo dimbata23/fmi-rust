@@ -12,22 +12,22 @@ pub enum Token {
     #[regex( r"[\-\+]?([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)", |lex| lex.slice().to_string() )]
     Real( String ),
 
-    #[regex( r"(([a-zA-Z\*<=>!\?:\$%_&~\^\+\-\.]+[0-9]*)+|([0-9]+[a-zA-Z\*<=>!\?:\$%_&~\^\+\-\.]+)*|#'*[a-zA-Z]*)", |lex| lex.slice().to_string())]
+    #[regex( r"(([a-zA-Z\*<=>!\?:\$%_&~\^\+\-\./]+[0-9]*)+|([0-9]+[a-zA-Z\*<=>!\?:\$%_&~\^\+\-\./]+)*|#'*[a-zA-Z]*)", |lex| lex.slice().to_string())]
     Identifier( String ),
 
-    #[regex( "\".*\"", |lex| lex.slice().to_string() )]
+    #[regex( "\"[^\"]*\"", |lex| lex.slice().to_string() )]
     String( String ),
 
-    #[token( "(", |lex| lex.slice().to_string() )]
-    OpenBracket( String ),
+    #[token( "(" )]
+    OpenBracket,
 
-    #[token( ")", |lex| lex.slice().to_string() )]
-    CloseBracket( String ),
+    #[token( ")" )]
+    CloseBracket,
 
-    #[token( "'", |lex| lex.slice().to_string() )]
-    Quote( String ),
+    #[token( "'" )]
+    Quote,
 
-    #[regex( r"[ \t\n\f]+", logos::skip )]
+    #[regex( r"[ \t\r\n\f]+", logos::skip )]
     Skip,
 
     #[error]
@@ -68,19 +68,19 @@ impl Parser {
         }
 
         match &self.tokens_arr[ self.index ] {
-            Token::Int( data )          => Some( Data::from_string_quoted( DataType::Integer,   data, quote_level ) ),
-            Token::Real( data )         => Some( Data::from_string_quoted( DataType::Real,      data, quote_level ) ),
+            Token::Int( data )          => Some( Data::from_string_quoted( DataType::Integer,   data.to_string(), quote_level ) ),
+            Token::Real( data )         => Some( Data::from_string_quoted( DataType::Real,      data.to_string(), quote_level ) ),
             Token::Identifier( data )   =>
                 Some(
                     Data::from_string_quoted(
                         if quote_level == 0 { DataType::Variable } else { DataType::Symbol }
-                        , data
+                        , data.to_string()
                         , quote_level
                     )
                 ),
-            Token::Quote( _ )        => { self.index += 1; self.parse_next( quote_level + 1 ) }
-            Token::String( data )       => Some( Data::from_string_quoted( DataType::Symbol,    data, quote_level ) ),
-            Token::OpenBracket( _ )  => {
+            Token::Quote                => { self.index += 1; self.parse_next( quote_level + 1 ) }
+            Token::String( data )       => Some( Data::from_string_quoted( DataType::Symbol,    data.to_string(), quote_level ) ),
+            Token::OpenBracket          => {
 
                 let mut res_list = Data::new_list();
                 if quote_level > 0 {
@@ -91,7 +91,7 @@ impl Parser {
                 self.index += 1;
 
                 while self.index < self.tokens_arr.len() {
-                    if let Token::CloseBracket(_) = self.tokens_arr[ self.index ] {
+                    if let Token::CloseBracket = self.tokens_arr[ self.index ] {
                         break;
                     }
 
@@ -109,9 +109,7 @@ impl Parser {
                 }
 
                 if self.index == self.tokens_arr.len() /*|| let Token::CloseBracket(_) = self.fTokens[ self.fIndex ]*/ {
-                    //self.print_error( Error::ReadSyntax, "expected a `)` to close `(`" );
-                    // TODO: Better error
-                    println!( "Expected a `)` to close `(`" );
+                    print_error( Error::ReadSyntax, "expected a `)` to close `(`" );
                     return None;
                 }
 
@@ -120,7 +118,7 @@ impl Parser {
                 }
 
                 if let DataType::Symbol = res_list.data_type {
-                    if res_list.list.is_empty() {
+                    if !res_list.list.is_empty() {
                         res_list.list.push( NULL_SYM );
                     }
                 }
@@ -128,25 +126,19 @@ impl Parser {
                 Some( res_list )
             },
 
-            Token::CloseBracket( _ )    => {
-                // PrintError( Error::READ_SYNTAX, "unexpected `)`" );
-                // TODO: Better error
-                println!( "Unexpected `)`" );
+            Token::CloseBracket         => {
+                print_error( Error::ReadSyntax, "unexpected `)`" );
                 None
             },
 
             Token::Error                => {
-                // PrintError( Error::READ_SYNTAX, "unknown parsing error occured..." );
-                // TODO: Better error
-                println!( "Unknown parsing error occured..." );
+                print_error( Error::Unknown, "" );
                 None
-            }
+            },
 
             Token::Skip                 => {
-                // unreachable
-                assert!( false );
-                None
-            }
+                panic!( "unreachable" );
+            },
         }
 
     }
@@ -164,4 +156,18 @@ impl Iterator for Parser {
         res
     }
 
+}
+
+
+enum Error {
+    Unknown,
+    ReadSyntax,
+}
+
+
+fn print_error( err: Error, text: &str ) {
+    match err {
+        Error::ReadSyntax   => println!( "read-syntax: {}", text ),
+        _                   => println!( "an unknown error occured while parsing..." ),
+    }
 }
