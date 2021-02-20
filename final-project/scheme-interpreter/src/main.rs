@@ -107,4 +107,28 @@ mod tests {
         assert_eq!( environment.eval( &parser.next().unwrap() ), new_false_sym() );
         assert_eq!( environment.eval( &parser.next().unwrap() ), new_true_sym() );
     }
+
+    #[test]
+    fn test_knapsack() {
+        let mut input = "(load \"basic-procs.scm\")".to_string();
+        let mut parser      = Parser::new();
+        let mut environment = Environment::new();
+
+        input = load_file( input );
+        parser.load( input.as_str() );
+        for data in &mut parser {
+            assert!( !is_invalid_data( &environment.eval( &data ) ) );
+        }
+
+        input = "(load \"2.scm\")".to_string();
+        input = load_file( input );
+        parser.load( input.as_str() );
+        for data in &mut parser {
+            assert!( !is_invalid_data( &environment.eval( &data ) ) );
+        }
+
+        input = "(knapsack 50 3 w p)".to_string();
+        parser.load( input.as_str() );
+        assert_eq!( environment.eval( &parser.next().unwrap() ), Data::from_string( DataType::Real, "6".to_string() ) );
+    }
 }
