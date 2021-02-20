@@ -1094,7 +1094,7 @@ fn proc_compare_helper( args: &ProcedureArgsArr, cmp_ord: CompareOrder , op: &st
     let mut curr_arg_real_val: f64;
     let mut check_type_is_int = true;
     
-    for i in 0..args.len() - 1 {
+    for i in 0..args.len() {
         let arg = &args[ i ];
 
         if !is_of_type( &DataType::Integer, &arg ) && !is_of_type( &DataType::Real, &arg ) {
@@ -1131,20 +1131,20 @@ fn cmp_exactly( cmp_ord: &CompareOrder, ord: Ordering ) -> bool {
     match ord {
         Ordering::Less      => {
             match cmp_ord {
-                CompareOrder::Less      => true,
-                _                       => false,
+                CompareOrder::Less | CompareOrder::LessEq       => true,
+                _ => false,
             }
         },
         Ordering::Equal     => {
             match cmp_ord {
-                CompareOrder::GreaterEq | CompareOrder::LessEq => true,
+                CompareOrder::GreaterEq | CompareOrder::LessEq  => true,
                 _ => false,
             }
         },
         Ordering::Greater   => {
             match cmp_ord {
-                CompareOrder::Greater   => true,
-                _                       => false,
+                CompareOrder::Greater | CompareOrder::GreaterEq => true,
+                _ => false,
             }
         },
     }
