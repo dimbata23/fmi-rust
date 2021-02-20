@@ -1,6 +1,6 @@
 use std::fmt;
 use std::collections::HashMap;
-
+use std::cmp::Ordering;
 
 #[derive( Clone, PartialEq )]
 pub enum DataType {
@@ -51,6 +51,24 @@ impl<'a> Environment<'a> {
         res.add_procedure(      "pair?"             , proc_is_pair          );
         res.add_procedure(      "list?"             , proc_is_list          );
         res.add_procedure(      "string?"           , proc_is_string        );
+        res.add_procedure(      "cons"              , proc_cons             );
+        res.add_procedure(      "car"               , proc_car              );
+        res.add_procedure(      "cdr"               , proc_cdr              );
+        res.add_procedure(      "number?"           , proc_is_number        );
+        res.add_procedure(      "integer?"          , proc_is_integer       );
+        res.add_procedure(      "real?"             , proc_is_real          );
+        res.add_procedure(      "="                 , proc_equals           );
+        res.add_procedure(      "<"                 , proc_less             );
+        res.add_procedure(      "<="                , proc_less_or_equal    );
+        res.add_procedure(      ">"                 , proc_greater          );
+        res.add_procedure(      ">="                , proc_greater_or_equal );
+        res.add_procedure(      "and"               , proc_and              );
+        res.add_procedure(      "or"                , proc_or               );
+        res.add_procedure(      "remainder"         , proc_remainder        );
+        res.add_procedure(      "quotient"          , proc_quotient         );
+        res.add_procedure(      "expt"              , proc_expt             );
+        res.add_procedure(      "max"               , proc_max              );
+        res.add_procedure(      "display"           , proc_display          );
 
         res
     }
@@ -149,7 +167,7 @@ impl<'a> Environment<'a> {
             return INVALID_DATA;
         }
 
-        if list_len > 3 && is_of_type( &DataType::List, &data.list[ 1 ] ) {
+        if list_len > 3 && !is_of_type( &DataType::List, &data.list[ 1 ] ) {
             if list_len > 3 {
                 print_error( Error::BadSyntax, "define", "exactly one expression after identifier", "");
                 return INVALID_DATA;
@@ -444,16 +462,25 @@ impl Data {
             },
             DataType::List => {
                 if quote_level == 0 {
-                    write!( f, "'" );
+                    if let Err( e ) = write!( f, "'" ) {
+                        eprintln!( "{}", e );
+                        return Err( e );
+                    }
                 }
                 
                 if quote_level < self.quote_level {
                     for _ in 0..(self.quote_level - quote_level) {
-                        write!( f, "'" );
+                        if let Err( e ) = write!( f, "'" ) {
+                            eprintln!( "{}", e );
+                            return Err( e );
+                        }
                     }
                 }
 
-                write!( f, "(" );
+                if let Err( e ) = write!( f, "(" ) {
+                    eprintln!( "{}", e );
+                    return Err( e );
+                }
 
                 assert!( !self.list.is_empty() );
 
@@ -462,20 +489,26 @@ impl Data {
                 }
 
                 if let Err( e ) = self.list[ 0 ].display( f, quote_level + 1 ) {
-                    println!( "{}", e );
+                    eprintln!( "{}", e );
                     return Err( e );
                 }
 
                 for i in 1..self.list.len() - 1 {
-                    write!( f, " " );
-                    if let Err( e ) = self.list[ i ].display( f, quote_level + 1 ) {
+                    if let Err( e ) = write!( f, " " ) {
                         println!( "{}", e );
+                        return Err( e );
+                    }
+                    if let Err( e ) = self.list[ i ].display( f, quote_level + 1 ) {
+                        eprintln!( "{}", e );
                         return Err( e );
                     }
                 }
 
                 if self.list.len() > 1 && !is_null_sym( self.list.last().unwrap() ) {
-                    write!( f, " . " );
+                    if let Err( e ) = write!( f, " . " ) {
+                        println!( "{}", e );
+                        return Err( e );
+                    }
                     if let Err( e ) = self.list.last().unwrap().display( f, quote_level + 1 ) {
                         println!( "{}", e );
                         return Err( e );
@@ -487,7 +520,10 @@ impl Data {
             DataType::Symbol => {
                 if quote_level < self.quote_level {
                     for _ in 0..( self.quote_level - quote_level ) {
-                        write!( f, "'" );
+                        if let Err( e ) = write!( f, "'" ) {
+                            eprintln!( "{}", e );
+                            return Err( e );
+                        }
                     }
                 }
 
@@ -495,7 +531,10 @@ impl Data {
                     return write!( f, "{}", &self.string );
                 }
 
-                write!( f, "(" );
+                if let Err( e ) = write!( f, "(" ) {
+                    eprintln!( "{}", e );
+                    return Err( e );
+                }
 
                 if !self.list.is_empty() {
                     if let Err( e ) = self.list.first().unwrap().display( f, self.quote_level ) {
@@ -504,7 +543,10 @@ impl Data {
                     }
 
                     for i in 1..self.list.len() - 1 {
-                        write!( f, " " );
+                        if let Err( e ) = write!( f, " " ) {
+                            eprintln!( "{}", e );
+                            return Err( e );
+                        }
                         if let Err( e ) = self.list[ i ].display( f, self.quote_level ) {
                             println!( "{}", e );
                             return Err( e );
@@ -520,7 +562,10 @@ impl Data {
                 if !( quote_level == 0 && self.quote_level == 1 ) {
                     if quote_level < self.quote_level {
                         for _ in 0..( self.quote_level - quote_level ) {
-                            write!( f, "'" );
+                            if let Err( e ) = write!( f, "'" ) {
+                                eprintln!( "{}", e );
+                                return Err( e );
+                            }
                         }
                     }
                 }
@@ -531,7 +576,10 @@ impl Data {
                 if !( quote_level == 0 && self.quote_level == 1 ) {
                     if quote_level < self.quote_level {
                         for _ in 0..( self.quote_level - quote_level ) {
-                            write!( f, "'" );
+                            if let Err( e ) = write!( f, "'" ) {
+                                eprintln!( "{}", e );
+                                return Err( e );
+                            }
                         }
                     }
                 }
@@ -662,7 +710,7 @@ fn is_of_type( data_type: &DataType, data: &Data ) -> bool {
 }
 
 
-fn _simulation_of_switch_fallthrough( res_type: &mut DataType, ires: &mut i64, fres: &mut f64, i: usize, args: &ProcedureArgsArr, is_div: bool, is_mul: bool, is_sub: bool ) {
+fn arithmetic_general_case( res_type: &mut DataType, ires: &mut i64, fres: &mut f64, i: usize, args: &ProcedureArgsArr, is_div: bool, is_mul: bool, is_sub: bool ) {
     if let DataType::Integer = res_type {
         if is_div {
             panic!( "unreachable" );
@@ -743,10 +791,10 @@ fn proc_arithmetic_inner( args: &ProcedureArgsArr, is_mul: bool, is_inv: bool ) 
                     res_type    = DataType::Real;
                     fres        = ires as f64;
                 }
-                _simulation_of_switch_fallthrough( &mut res_type, &mut ires, &mut fres, i, args, is_div, is_mul, is_sub );
+                arithmetic_general_case( &mut res_type, &mut ires, &mut fres, i, args, is_div, is_mul, is_sub );
             },
             DataType::Integer => {
-                _simulation_of_switch_fallthrough( &mut res_type, &mut ires, &mut fres, i, args, is_div, is_mul, is_sub );
+                arithmetic_general_case( &mut res_type, &mut ires, &mut fres, i, args, is_div, is_mul, is_sub );
             },
             _ => {
                 print_error( Error::ContractViolation, proc_name, "number?", args[ i ].to_string().as_str() );
@@ -870,4 +918,371 @@ fn proc_is_string( args: &ProcedureArgsArr ) -> Data {
 }
 
 
-// TODO: proc cons and others...
+fn proc_cons( args: &ProcedureArgsArr ) -> Data {
+    if args.len() != 2 {
+        print_error( Error::ArityMismatch, "cons", "2", args.len().to_string().as_str() );
+        return INVALID_DATA;
+    }
+
+    let mut res = Data::new_list();
+    res.list.push( args[ 0 ].clone() );
+
+    let rhs = &args[ 1 ];
+    if rhs.list.is_empty() {
+        res.list.push( rhs.clone() );
+    } else {
+        res.list.reserve( rhs.list.len() );
+        res.list.append( &mut rhs.list.clone() );
+    }
+
+    res
+}
+
+
+fn proc_car( args: &ProcedureArgsArr ) -> Data {
+    if args.len() != 1 {
+        print_error( Error::ArityMismatch, "car", "1", args.len().to_string().as_str() );
+        return INVALID_DATA;
+    }
+
+    if is_false_sym( &proc_is_pair( &args ) ) {
+        print_error( Error::ContractViolation, "car", "pair?", args[ 0 ].to_string().as_str() );
+        return INVALID_DATA;
+    }
+
+    return args[ 0 ].list[ 0 ].clone();
+}
+
+
+fn proc_cdr( args: &ProcedureArgsArr ) -> Data {
+    if args.len() != 1 {
+        print_error( Error::ArityMismatch, "cdr", "1", args.len().to_string().as_str() );
+        return INVALID_DATA;
+    }
+
+    if is_false_sym( &proc_is_pair( &args ) ) {
+        print_error( Error::ContractViolation, "cdr", "pair?", args[ 0 ].to_string().as_str() );
+        return INVALID_DATA;
+    }
+
+    if args[ 0 ].list.len() == 2 && is_null_sym( &args[ 0 ].list[ 1 ] ) {
+        return NULL_SYM;
+    }
+
+    let mut res = Data::new_list();
+    res.list.reserve( args[ 0 ].list.len() - 1 );
+    for i in 1..args[ 0 ].list.len() {
+        res.list.push( args[ 0 ].list[ i ].clone() );
+    }
+
+    res
+}
+
+
+fn proc_is_number( args: &ProcedureArgsArr ) -> Data {
+    if args.len() != 1 {
+        print_error( Error::ArityMismatch, "number?", "1", args.len().to_string().as_str() );
+        return INVALID_DATA;
+    }
+
+    if is_of_type( &DataType::Integer, &args[ 0 ] ) || is_of_type( &DataType::Real, &args[ 0 ] ) {
+        new_true_sym()
+    }
+    else {
+        new_false_sym()
+    }
+}
+
+
+fn proc_is_integer( args: &ProcedureArgsArr ) -> Data {
+    if args.len() != 1 {
+        print_error( Error::ArityMismatch, "integer?", "1", args.len().to_string().as_str() );
+        return INVALID_DATA;
+    }
+
+    if is_of_type( &DataType::Integer, &args[ 0 ] ) {
+        return new_true_sym();
+    }
+    
+    if is_of_type( &DataType::Real, &args[ 0 ] ) {
+        let float = args[ 0 ].string.parse::<f64>().unwrap();
+        if float.fract() == 0.0 {
+            return new_true_sym();
+        }
+    }
+
+    new_false_sym()
+}
+
+
+fn proc_is_real( args: &ProcedureArgsArr ) -> Data {
+    proc_is_number( args )  // Since fractions aren't implemented
+}
+
+
+fn proc_equals( args: &ProcedureArgsArr ) -> Data {
+    if args.is_empty() {
+        print_error( Error::ArityMismatch, "=", "at least 1", "0" );
+        return INVALID_DATA;
+    }
+
+    let first_is_int    = is_of_type( &DataType::Integer, &args[ 0 ] );
+    let int_val         = if first_is_int { args[ 0 ].string.parse::<i64>().unwrap() } else { 0 };
+    let real_val        = if first_is_int { int_val as f64 } else { args[ 0 ].string.parse::<f64>().unwrap() };
+    for arg in args {
+        if !is_of_type( &DataType::Integer, &arg ) && !is_of_type( &DataType::Real, &arg ) {
+            print_error( Error::ContractViolation, "=", "number?", arg.to_string().as_str() );
+            return INVALID_DATA;
+        }
+
+        if first_is_int && is_of_type( &DataType::Integer, &arg ) {
+            if int_val != arg.string.parse::<i64>().unwrap() {
+                return new_false_sym()
+            }
+        }
+        else {
+            if real_val != arg.string.parse::<f64>().unwrap() {
+                return new_false_sym()
+            }
+        }
+    }
+
+    new_true_sym()
+}
+
+
+enum CompareOrder {
+    Less,
+    LessEq,
+    GreaterEq,
+    Greater
+}
+
+
+fn proc_less( args: &ProcedureArgsArr ) -> Data {
+    proc_compare_helper( args, CompareOrder::Less, "<" )
+}
+
+
+fn proc_less_or_equal( args: &ProcedureArgsArr ) -> Data {
+    proc_compare_helper( args, CompareOrder::LessEq, "<=" )
+}
+
+
+fn proc_greater( args: &ProcedureArgsArr ) -> Data {
+    proc_compare_helper( args, CompareOrder::Greater, ">" )
+}
+
+fn proc_greater_or_equal( args: &ProcedureArgsArr ) -> Data {
+    proc_compare_helper( args, CompareOrder::GreaterEq, ">=" )
+}
+
+
+fn proc_compare_helper( args: &ProcedureArgsArr, cmp_ord: CompareOrder , op: &str ) -> Data {
+    if args.is_empty() {
+        print_error( Error::ArityMismatch, op, "at least 1", "0" );
+        return INVALID_DATA;
+    }
+
+    if args.len() == 1 {
+        return new_true_sym();
+    }
+
+    let mut last_arg_int_val = 0 as i64;
+    let mut last_arg_real_val = 0 as f64;
+    let mut curr_arg_int_val: i64;
+    let mut curr_arg_real_val: f64;
+    let mut check_type_is_int = true;
+    
+    for i in 0..args.len() - 1 {
+        let arg = &args[ i ];
+
+        if !is_of_type( &DataType::Integer, &arg ) && !is_of_type( &DataType::Real, &arg ) {
+            print_error( Error::ContractViolation, op, "number?", arg.to_string().as_str() );
+            return INVALID_DATA;
+        }
+
+        check_type_is_int   = check_type_is_int && is_of_type( &DataType::Integer, &arg );
+        curr_arg_int_val    = if check_type_is_int { arg.string.parse::<i64>().unwrap() } else { 0 };
+        curr_arg_real_val   = if check_type_is_int { curr_arg_int_val as f64 } else { arg.string.parse::<f64>().unwrap() };
+
+        if i != 0 {
+            if check_type_is_int {
+                if !cmp_exactly( &cmp_ord, last_arg_int_val.cmp( &curr_arg_int_val ) ) {
+                    return new_false_sym();
+                }
+            }
+            else {
+                if !cmp_exactly( &cmp_ord, last_arg_real_val.partial_cmp( &curr_arg_real_val ).unwrap_or( Ordering::Equal ) ) {
+                    return new_false_sym();
+                }
+            }
+        }
+
+        last_arg_int_val    = curr_arg_int_val;
+        last_arg_real_val   = curr_arg_real_val;
+    }
+
+    new_true_sym()
+}
+
+
+fn cmp_exactly( cmp_ord: &CompareOrder, ord: Ordering ) -> bool {
+    match ord {
+        Ordering::Less      => {
+            match cmp_ord {
+                CompareOrder::Less      => true,
+                _                       => false,
+            }
+        },
+        Ordering::Equal     => {
+            match cmp_ord {
+                CompareOrder::GreaterEq | CompareOrder::LessEq => true,
+                _ => false,
+            }
+        },
+        Ordering::Greater   => {
+            match cmp_ord {
+                CompareOrder::Greater   => true,
+                _                       => false,
+            }
+        },
+    }
+}
+
+
+fn proc_and( args: &ProcedureArgsArr ) -> Data {
+    for arg in args {
+        if is_false_sym( arg ) {
+            return new_false_sym()
+        }
+    }
+
+    new_true_sym()
+}
+
+
+fn proc_or( args: &ProcedureArgsArr ) -> Data {
+    for arg in args {
+        if !is_false_sym( arg ) {
+            return new_true_sym()
+        }
+    }
+
+    new_false_sym()
+}
+
+
+fn proc_remainder( args: &ProcedureArgsArr ) -> Data {
+    proc_div_inner( args, true )
+}
+
+
+fn proc_quotient( args: &ProcedureArgsArr ) -> Data {
+    proc_div_inner( args, false )
+}
+
+
+fn proc_div_inner( args: &ProcedureArgsArr, get_rem: bool ) -> Data {
+    let proc = if get_rem { "remainder" } else { "quotient" };
+
+    if args.len() != 2 { 
+        print_error( Error::ArityMismatch, proc, "2", args.len().to_string().as_str() );
+        return INVALID_DATA;
+    }
+
+    for arg in args {
+        if is_false_sym( &proc_is_integer( &vec![ arg.clone() ] ) ) {
+            print_error( Error::ContractViolation, proc, "integer?", arg.to_string().as_str() );
+            return INVALID_DATA;
+        }
+    }
+
+    let lhs = args[ 0 ].string.parse::<i64>().unwrap();
+    let rhs = args[ 1 ].string.parse::<i64>().unwrap();
+    let res_str;
+    if get_rem {
+        res_str = ( lhs % rhs ).to_string();
+    } else {
+        res_str = ( lhs / rhs ).to_string();
+    }
+
+    Data::from_string( DataType::Integer, res_str )
+}
+
+
+fn proc_expt( args: &ProcedureArgsArr ) -> Data {
+    if args.len() != 2 {
+        print_error( Error::ArityMismatch, "expt", "2", args.len().to_string().as_str() );
+        return INVALID_DATA;
+    }
+
+    let are_nums    =       ( is_of_type( &DataType::Integer, &args[ 0 ] ) || is_of_type( &DataType::Real, &args[ 0 ] ) )
+                        &&  ( is_of_type( &DataType::Integer, &args[ 1 ] ) || is_of_type( &DataType::Real, &args[ 1 ] ) );
+
+    if !are_nums {
+        print_error( Error::ContractViolation, "expt", "number?", ( args[ 0 ].to_string() + " and " + args[ 0 ].to_string().as_str() ).as_str() );
+        return INVALID_DATA;
+    }
+
+    let res = args[ 0 ].to_string().parse::<f64>().unwrap().powf( args[ 1 ].to_string().parse::<f64>().unwrap() );
+    Data::from_string( DataType::Real, res.to_string() )
+}
+
+
+fn proc_max( args: &ProcedureArgsArr ) -> Data {
+    if args.is_empty() {
+        print_error( Error::ArityMismatch, "max", "at least 1", "0" );
+        return INVALID_DATA;
+    }
+
+    let mut res_is_int  = is_of_type( &DataType::Integer, &args[ 0 ] );
+    let mut int_res     = if res_is_int { args[ 0 ].string.parse::<i64>().unwrap() } else { 0 };
+    let mut real_res    = if res_is_int { int_res as f64 } else { args[ 0 ].string.parse::<f64>().unwrap() };
+    let mut curr_is_int: bool;
+    let mut int_curr: i64;
+    let mut real_curr: f64;
+
+    for arg in args {
+        if !is_of_type( &DataType::Integer, arg ) && !is_of_type( &DataType::Real, arg ) {
+            print_error( Error::ContractViolation, "max", "number?", arg.to_string().as_str() );
+            return INVALID_DATA;
+        }
+
+        curr_is_int = is_of_type( &DataType::Integer, &arg );
+
+        if res_is_int && !curr_is_int {
+            res_is_int  = false;
+            real_res    = int_res as f64;
+        }
+
+        int_curr    = if curr_is_int { arg.string.parse::<i64>().unwrap() } else { 0 };
+        real_curr   = if curr_is_int { int_curr as f64 } else { arg.string.parse::<f64>().unwrap() };
+
+        if res_is_int && curr_is_int {
+            int_res = if int_res < int_curr { int_curr } else { int_res };
+        }
+        else {
+            real_res = if real_res < real_curr { real_curr } else { real_res };
+        }
+    }
+
+    if res_is_int {
+        Data::from_string( DataType::Integer, int_res.to_string() )
+    }
+    else {
+        Data::from_string( DataType::Real, real_res.to_string() )
+    }
+}
+
+
+fn proc_display( args: &ProcedureArgsArr ) -> Data {
+    if args.len() != 1 {
+        print_error( Error::ArityMismatch, "display", "1", args.len().to_string().as_str() );
+        return INVALID_DATA;
+    }
+
+    print!( "{}", args[ 0 ].to_string() );
+
+    new_void_data()
+}
