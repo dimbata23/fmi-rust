@@ -1,4 +1,3 @@
-// use logos::Logos;
 mod parser;
 mod interpreter;
 use parser::*;
@@ -6,6 +5,36 @@ use interpreter::*;
 use std::io;
 use std::fs;
 use regex::Regex;
+
+
+fn main() {
+
+    let mut environment = Environment::new();
+    let mut parser      = Parser::new();
+    let mut input       = String::new();
+
+    loop {
+        input.clear();
+        if let Err( e ) = io::stdin().read_line( &mut input ) {
+            println!( "{}", e );
+            break;
+        }
+
+        if is_exit_input( input.as_str() ) {
+            break;
+        }
+
+        input = load_file( input );
+
+        parser.load( input.as_str() );
+
+        for data in &mut parser {
+            println!( "{}", environment.eval( &data ) );
+        }
+    }
+
+}
+
 
 fn is_exit_input( string: &str ) -> bool {
     let re = Regex::new( r"^ *\( *exit *\) *$" ).unwrap();
@@ -37,33 +66,6 @@ fn load_file( input: String ) -> String {
 }
 
 
-fn main() {
-
-    let mut environment = Environment::new();
-    let mut parser      = Parser::new();
-    let mut input       = String::new();
-
-    loop {
-        input.clear();
-        if let Err( e ) = io::stdin().read_line( &mut input ) {
-            println!( "{}", e );
-            break;
-        }
-
-        if is_exit_input( input.as_str() ) {
-            break;
-        }
-
-        input = load_file( input );
-
-        parser.load( input.as_str() );
-
-        for data in &mut parser {
-            println!( "{}", environment.eval( &data ) );
-        }
-    }
-
-}
 
 
 
