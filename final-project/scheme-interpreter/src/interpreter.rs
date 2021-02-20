@@ -2,7 +2,7 @@ use std::fmt;
 use std::collections::HashMap;
 use std::cmp::Ordering;
 
-#[derive( Clone, PartialEq )]
+#[derive( Clone, PartialEq, Debug )]
 pub enum DataType {
     Invalid,
     Integer,
@@ -634,12 +634,12 @@ pub fn is_null_sym( data: &Data ) -> bool {
 }
 
 
-pub fn is_true_sym( data: &Data ) -> bool {
-    is_of_type( &DataType::Symbol, &data )  &&
-    data.quote_level    == 0                &&
-    data.string         == "#t"             &&
-    data.list.is_empty()
-}
+// pub fn is_true_sym( data: &Data ) -> bool {
+//     is_of_type( &DataType::Symbol, &data )  &&
+//     data.quote_level    == 0                &&
+//     data.string         == "#t"             &&
+//     data.list.is_empty()
+// }
 
 
 pub fn is_false_sym( data: &Data ) -> bool {
@@ -650,12 +650,12 @@ pub fn is_false_sym( data: &Data ) -> bool {
 }
 
 
-pub fn is_void_data( data: &Data ) -> bool {
-    is_of_type( &DataType::Invalid, &data ) &&
-    data.quote_level    == 0                &&
-    data.string         == "#<void>"        &&
-    data.list.is_empty()
-}
+// pub fn is_void_data( data: &Data ) -> bool {
+//     is_of_type( &DataType::Invalid, &data ) &&
+//     data.quote_level    == 0                &&
+//     data.string         == "#<void>"        &&
+//     data.list.is_empty()
+// }
 
 
 pub fn is_invalid_data( data: &Data ) -> bool {
@@ -667,10 +667,10 @@ pub fn is_invalid_data( data: &Data ) -> bool {
 
 
 enum Error {
-    Unknown,
+    // Unknown,
     ArityMismatch,
     NotAProcedure,
-    NotImplemented,
+    // NotImplemented,
     ContractViolation,
     Undefined,
     MissingProcedure,
@@ -684,12 +684,11 @@ fn print_error( err: Error, proc: &str, expected: &str, given: &str ) {
     match err {
         Error::ArityMismatch        => print!( "arity mismatch;\n the expected number of arguments does not match the given number" ),
         Error::NotAProcedure        => print!( "not a procedure;\n expected a procedure that can be applied to arguments" ),
-        Error::NotImplemented       => print!( "not implemented;" ),
+        // Error::NotImplemented       => print!( "not implemented;" ),
         Error::ContractViolation    => print!( "contract violation;" ),
         Error::MissingProcedure     => print!( "missing procedure expression;\n probably originally (), which is an illegal empty application in: ({})", proc ),
         Error::Undefined            => print!( "undefined;\n cannot reference an identifier before its definition" ),
         Error::BadSyntax            => print!( "bad syntax;" ),
-        _                           => print!( "an unknown error occured;" ),
     }
 
     if !expected.is_empty() {
@@ -1285,4 +1284,30 @@ fn proc_display( args: &ProcedureArgsArr ) -> Data {
     print!( "{}", args[ 0 ].to_string() );
 
     new_void_data()
+}
+
+
+impl fmt::Debug for Data {
+
+    fn fmt( &self, f: &mut fmt::Formatter<'_> ) -> fmt::Result {
+        f.debug_tuple( "" )
+            .field( &self.data_type )
+            .field( &self.string )
+            .field( &self.quote_level )
+            .field( &self.list )
+            .finish()
+    }
+
+}
+
+
+impl PartialEq for Data {
+
+    fn eq( &self, other: &Data ) -> bool {
+        self.data_type      == other.data_type      &&
+        self.string         == other.string         &&
+        self.quote_level    == other.quote_level    &&
+        self.list           == other.list
+    }
+
 }
