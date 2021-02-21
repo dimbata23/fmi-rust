@@ -137,7 +137,7 @@ impl Parser {
             },
 
             Token::Skip                 => {
-                panic!( "unreachable" );
+                unreachable!();
             },
         }
 

@@ -712,7 +712,7 @@ fn is_of_type( data_type: &DataType, data: &Data ) -> bool {
 fn arithmetic_general_case( res_type: &mut DataType, ires: &mut i64, fres: &mut f64, i: usize, args: &ProcedureArgsArr, is_div: bool, is_mul: bool, is_sub: bool ) {
     if let DataType::Integer = res_type {
         if is_div {
-            panic!( "unreachable" );
+            unreachable!();
         }
         else if is_mul {
             *ires *= args[ i ].string.parse::<f64>().unwrap() as i64;
