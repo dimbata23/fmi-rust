@@ -110,7 +110,7 @@ mod tests {
 
     #[test]
     fn test_knapsack() {
-        let mut input = "(load \"basic-procs.scm\")".to_string();
+        let mut input       = "(load \"basic-procs.scm\")".to_string();
         let mut parser      = Parser::new();
         let mut environment = Environment::new();
 
